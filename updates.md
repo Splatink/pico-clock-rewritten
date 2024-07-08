@@ -1,5 +1,10 @@
 **CHANGELOG:**
 
+2.1:
+* Added a serial debugging mode. This mode is activated if the BUTTON is held at bootup. Serial debugging info (variables) are output on GPIO0(TX) at 9600 baud every 30 seconds.
+* All functions are now called seperately and their return values placed in variables to be given to displayClocl() and serialDebugInfo()
+* Removed functions calling other functions by themselves
+
 2.0:
 * Removed DHT reading capabilities, second core is now unused
 * Added BME280 sensor reading, displayClock() now requires the temperature and humidity to be provided instead of being global variables

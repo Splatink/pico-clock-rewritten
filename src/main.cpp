@@ -19,11 +19,62 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 const char* ssid = "Limbo";
 const char* password = "95H2O862U235@#";
 
-bool lpmode;
+bool lpmode, debugmode;
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "gr.pool.ntp.org", 0, 1296000000);
 Adafruit_BME280 bme;
+
+void serialDebugInfo(float batteryVoltage, float batteryPrecentage, int wifiRSSI, int wifiStatus, const char* day, bool brightness, float temperature, float humidity, float pressure, bool disconnected)
+{
+	Serial1.print("Battery Voltage: ");
+	Serial1.println(batteryVoltage, 1);
+	Serial1.print("Battery Precentage: ");
+	Serial1.println(batteryPrecentage, 0);
+	Serial1.print("WiFi RSSI: ");
+	Serial1.println(wifiRSSI);
+	Serial1.print("WiFi Status: ");
+	Serial1.println(wifiStatus);
+	Serial1.print("Day: ");
+	Serial1.println(day);
+	Serial1.print("Brightness: ");
+  if (brightness == true)
+  {
+	  Serial1.println("LOW");
+  }
+  else
+  {
+    Serial1.println("HIGH");
+  }
+  Serial1.print("Manually Disconnected WiFi: ");
+  if (disconnected == false)
+  {
+    Serial1.println("NO");
+  }
+  else
+  {
+    Serial1.println("YES");
+  } 
+  Serial1.print("Low Power Mode: ");
+  if (lpmode == false)
+  {
+    Serial1.println("INACTIVE");
+  }
+  else
+  {
+    Serial1.println("ACTIVE");
+  }
+  Serial1.print("Temperature: ");
+	Serial1.print(temperature, 1);
+	Serial1.println(" C");
+	Serial1.print("Humidity: ");
+	Serial1.print(humidity, 1);
+	Serial1.println(" %");
+	Serial1.print("Pressure: ");
+	Serial1.print((pressure * 0.01), 1);
+	Serial1.println(" hPa");
+  Serial1.println("");
+}
 
 int batteryReader()
 {
@@ -40,15 +91,15 @@ int batteryReader()
   return battery;
 }
 
-float getBatteryVoltage()
+float getBatteryVoltage(int battery)
 {
-  float battv = (batteryReader() * 3.3 / 4095) * 2;
+  float battv = (battery * 3.3 / 4095) * 2;
   return battv;
 }
 
-float getBatteryPrecentage()
+float getBatteryPrecentage(float battv)
 {
-  float battp = (getBatteryVoltage() - 2.5) / (4.2 - 2.5) * 100;
+  float battp = (battv - 2.5) / (4.2 - 2.5) * 100;
   if (battp <= 0) 
   {
     battp = 1;
@@ -79,8 +130,7 @@ int getWifiRSSI()
   return RSSI; 
 }
 
-int getWifiStatus(){
-  int RSSI = getWifiRSSI();
+int getWifiStatus(int RSSI){
   int wifiStatus;
   if (RSSI >= -55 && WiFi.status() == WL_CONNECTED) 
   {
@@ -106,10 +156,10 @@ int getWifiStatus(){
   return wifiStatus;
 }
 
-const char* getDay()
+const char* getDay(int dayInt)
 {
   const char* day; 
-  switch (timeClient.getDay()) 
+  switch (dayInt) 
   {
     case 0:
       day = "Sun";
@@ -298,7 +348,7 @@ void setup()
   Wire.setSCL(SCK);
   Wire.setSDA(SDA);
   WiFi.mode(WIFI_STA);
-  WiFi.hostname("pico-clock");
+  WiFi.hostname("pico-clock"); 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) 
   {
@@ -318,21 +368,48 @@ void setup()
   }
   for (int i = 0; i < 10; i++)
   {
-    getBatteryPrecentage();
+    getBatteryPrecentage(getBatteryVoltage(batteryReader()));
     getWifiRSSI();
+  }
+  if (digitalRead(BUTTON) == true)
+  {
+    Serial1.setTX(0);
+    Serial1.setRX(1);
+    Serial1.begin(9600);
+    debugmode = true;
   }
 }
 
 void loop()
 {
-  bool disconnected;
+  static bool disconnected = false;
+  static int counter = 0; 
   timeClient.update();
-  displayClock(getDay(), getBatteryPrecentage(), getWifiStatus(), timeClient.getHours(), timeClient.getMinutes(), checkBrightness(), readTemperature(), readHumidity());
+
+  const char* day = getDay(timeClient.getDay());
+  float batteryVoltage = getBatteryVoltage(batteryReader());
+  float batteryPrecentage = getBatteryPrecentage(batteryVoltage);
+  int wifiRSSI = getWifiRSSI();
+  int wifiStatus = getWifiStatus(wifiRSSI);
+  int hours = timeClient.getHours();
+  int minutes = timeClient.getMinutes();
+  bool brightness = checkBrightness();
+  float temperature = readTemperature();
+  float humidity = readHumidity();
+
+  displayClock(day, batteryPrecentage, wifiStatus, hours, minutes, brightness, temperature, humidity);
+  if (debugmode == true && counter >= 30)
+  {
+    float pressure = bme.readPressure();
+    serialDebugInfo(batteryVoltage, batteryPrecentage, wifiRSSI, wifiStatus, day, brightness, temperature, humidity, pressure, disconnected); 
+    counter = 0; 
+  }
+  counter++; 
   sleep_ms(1000);
   if (lpmode == true && disconnected == false)
   {
     WiFi.disconnect();
     set_sys_clock_khz(20000, true);
     disconnected = true;
-  } 
+  }
 }

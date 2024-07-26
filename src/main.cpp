@@ -25,9 +25,11 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "gr.pool.ntp.org", 0, 1296000000);
 Adafruit_BME280 bme;
 
-void serialDebugInfo(float batteryVoltage, float batteryPrecentage, int wifiRSSI, int wifiStatus, const char* day, bool brightness, float temperature, float humidity, float pressure, bool disconnected)
+void serialDebugInfo(float firmwareVersion, float batteryVoltage, float batteryPrecentage, int wifiRSSI, int wifiStatus, const char* day, bool brightness, float temperature, float humidity, float pressure, bool disconnected)
 {
-	Serial1.print("Battery Voltage: ");
+  Serial1.print("Firmware Version: ");
+  Serial1.println(firmwareVersion, 1);
+  Serial1.print("Battery Voltage: ");
 	Serial1.println(batteryVoltage, 1);
 	Serial1.print("Battery Precentage: ");
 	Serial1.println(batteryPrecentage, 0);
@@ -375,7 +377,7 @@ void setup()
   {
     Serial1.setTX(0);
     Serial1.setRX(1);
-    Serial1.begin(9600);
+    Serial1.begin(115200);
     debugmode = true;
   }
 }
@@ -383,7 +385,7 @@ void setup()
 void loop()
 {
   static bool disconnected = false;
-  static int counter = 0; 
+  static int counter = 29; 
   timeClient.update();
 
   const char* day = getDay(timeClient.getDay());
@@ -401,7 +403,7 @@ void loop()
   if (debugmode == true && counter >= 30)
   {
     float pressure = bme.readPressure();
-    serialDebugInfo(batteryVoltage, batteryPrecentage, wifiRSSI, wifiStatus, day, brightness, temperature, humidity, pressure, disconnected); 
+    serialDebugInfo(2.2 ,batteryVoltage, batteryPrecentage, wifiRSSI, wifiStatus, day, brightness, temperature, humidity, pressure, disconnected); 
     counter = 0; 
   }
   counter++; 

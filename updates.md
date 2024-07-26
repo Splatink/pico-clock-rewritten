@@ -1,5 +1,9 @@
 **CHANGELOG:**
 
+2.2:
+* Changed baudrate to standard 115200 baud
+* Added a firmware version printout to serial
+
 2.1:
 * Added a serial debugging mode. This mode is activated if the BUTTON is held at bootup. Serial debugging info (variables) are output on GPIO0(TX) at 9600 baud every 30 seconds.
 * All functions are now called seperately and their return values placed in variables to be given to displayClocl() and serialDebugInfo()

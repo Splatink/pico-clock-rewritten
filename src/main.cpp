@@ -16,8 +16,8 @@
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
-const char* ssid = "Limbo";
-const char* password = "95H2O862U235@#";
+const char* ssid = "teo";
+const char* password = "teo";
 
 bool lpmode, debugmode;
 
